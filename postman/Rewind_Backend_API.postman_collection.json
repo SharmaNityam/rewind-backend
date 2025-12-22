@@ -1,0 +1,1337 @@
+{
+	"info": {
+		"_postman_id": "rewind-backend-api",
+		"name": "Rewind Backend API",
+		"description": "Complete API collection for Rewind Mental Health iOS App Backend\n\nBase URL: http://localhost:3000\n\nAll endpoints use JWT Bearer token authentication (except auth endpoints).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.tokens && response.tokens.accessToken) {",
+									"        pm.environment.set('accessToken', response.tokens.accessToken);",
+									"        pm.environment.set('refreshToken', response.tokens.refreshToken);",
+									"        pm.environment.set('userId', response.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.tokens && response.tokens.accessToken) {",
+									"        pm.environment.set('accessToken', response.tokens.accessToken);",
+									"        pm.environment.set('refreshToken', response.tokens.refreshToken);",
+									"        pm.environment.set('userId', response.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "me"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"emailOrPhone\": \"john.doe@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "forgot-password"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"emailOrPhone\": \"john.doe@example.com\",\n    \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "verify-otp"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"emailOrPhone\": \"john.doe@example.com\",\n    \"otp\": \"123456\",\n    \"newPassword\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/reset-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "reset-password"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "logout"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. User Management",
+			"item": [
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "profile"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Updated\",\n    \"location\": \"New York, USA\",\n    \"dateOfBirth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"age\": 34,\n    \"healthGoal\": \"Reduce stress and anxiety\",\n    \"seekingProfessionalHelp\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "profile"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Avatar",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "avatar",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/avatar",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "avatar"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Onboarding",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"healthGoal\": \"Improve mental wellness\",\n    \"gender\": \"male\",\n    \"age\": 28,\n    \"seekingProfessionalHelp\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/onboarding",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "onboarding"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Journals",
+			"item": [
+				{
+					"name": "List Journals",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals?page=1&perPage=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Journal (Text)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.id) {",
+									"        pm.environment.set('journalId', response.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Today's Reflection\",\n    \"content\": \"Had a great day today. Feeling grateful for the small things in life.\",\n    \"entryType\": \"text\",\n    \"moodTags\": [\"happy\", \"grateful\", \"peaceful\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Journal (Voice)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Voice Journal Entry\",\n    \"content\": \"Transcribed text from voice recording\",\n    \"entryType\": \"voice\",\n    \"voiceRecordingUrl\": \"https://example.com/recordings/voice123.mp3\",\n    \"transcriptionText\": \"This is the transcribed text from my voice recording.\",\n    \"moodTags\": [\"reflective\", \"calm\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Journal by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals/{{journalId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals", "{{journalId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Journal",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Journal Title\",\n    \"content\": \"Updated content here\",\n    \"moodTags\": [\"updated\", \"mood\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals/{{journalId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals", "{{journalId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Journal",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals/{{journalId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals", "{{journalId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Media to Journal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "media",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals/{{journalId}}/media",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals", "{{journalId}}", "media"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transcribe Voice",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "audio",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/journals/transcribe",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "journals", "transcribe"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Goals",
+			"item": [
+				{
+					"name": "List Goals",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/goals?status=active",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "goals"],
+							"query": [
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Optional: active, completed, paused, cancelled"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Goal",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.id) {",
+									"        pm.environment.set('goalId', response.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Meditate Daily\",\n    \"description\": \"Practice meditation for 10 minutes every day\",\n    \"category\": \"wellness\",\n    \"targetDate\": \"2025-12-31\",\n    \"status\": \"active\",\n    \"progress\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/goals",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "goals"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Goal by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/goals/{{goalId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "goals", "{{goalId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Goal",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Goal Title\",\n    \"description\": \"Updated description\",\n    \"progress\": 50,\n    \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/goals/{{goalId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "goals", "{{goalId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Goal Progress",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"progress\": 75\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/goals/{{goalId}}/progress",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "goals", "{{goalId}}", "progress"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Goal",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/goals/{{goalId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "goals", "{{goalId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Care Corner",
+			"item": [
+				{
+					"name": "Get Daily Challenges",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/care-corner/challenges",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "care-corner", "challenges"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Challenge",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.id) {",
+									"        pm.environment.set('challengeId', response.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/care-corner/challenges/{{challengeId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "care-corner", "challenges", "{{challengeId}}", "complete"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start Breathing Exercise",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"durationSeconds\": 300\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/care-corner/breathing",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "care-corner", "breathing"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start Meditation Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"durationSeconds\": 600,\n    \"soundName\": \"ocean\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/care-corner/meditation",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "care-corner", "meditation"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Activity History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/care-corner/history?page=1&perPage=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "care-corner", "history"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Community",
+			"item": [
+				{
+					"name": "List Posts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts?page=1&perPage=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Post",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.id) {",
+									"        pm.environment.set('postId', response.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Feeling grateful today! Small steps lead to big changes. 🌟\",\n    \"isAnonymous\": false,\n    \"tags\": [\"gratitude\", \"motivation\", \"wellness\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Anonymous Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Sometimes it's okay to not be okay. You're not alone.\",\n    \"isAnonymous\": true,\n    \"tags\": [\"support\", \"mental-health\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts/{{postId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts", "{{postId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Post",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Updated post content\",\n    \"tags\": [\"updated\", \"tag\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts/{{postId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts", "{{postId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Post",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts/{{postId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts", "{{postId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Like Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts/{{postId}}/like",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts", "{{postId}}", "like"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Unlike Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts/{{postId}}/like",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts", "{{postId}}", "like"]
+						},
+						"description": "Toggles like - if already liked, unlikes it"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Comment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.id) {",
+									"        pm.environment.set('commentId', response.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"commentText\": \"Great post! Keep it up! 💪\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts/{{postId}}/comments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts", "{{postId}}", "comments"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post Comments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/posts/{{postId}}/comments?page=1&perPage=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "posts", "{{postId}}", "comments"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Available Tags",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/community/tags",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "community", "tags"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7. Notifications",
+			"item": [
+				{
+					"name": "List Notifications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications?page=1&perPage=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Unread Count",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications/unread-count",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications", "unread-count"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Notification as Read",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications/{{notificationId}}/read",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications", "{{notificationId}}", "read"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Mark All as Read",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications/read-all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications", "read-all"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Notification",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications/{{notificationId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications", "{{notificationId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "8. HomePets",
+			"item": [
+				{
+					"name": "Get User Pet",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/homepets/user-pet",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "homepets", "user-pet"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Pet",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Fluffy\",\n    \"type\": \"cat\",\n    \"level\": 5,\n    \"experience\": 250,\n    \"customizations\": {\n        \"color\": \"orange\",\n        \"accessory\": \"crown\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/homepets/user-pet",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "homepets", "user-pet"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9. Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "journalId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "goalId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "postId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "commentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "challengeId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "notificationId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

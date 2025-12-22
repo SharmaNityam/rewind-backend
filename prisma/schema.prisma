@@ -1,0 +1,256 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String   @id @default(uuid())
+  name                      String   @db.VarChar(255)
+  email                     String   @unique @db.VarChar(255)
+  phone                     String?  @unique @db.VarChar(20)
+  passwordHash              String   @map("password_hash") @db.VarChar(255)
+  profileImageUrl           String?  @map("profile_image_url")
+  location                  String?  @db.VarChar(255)
+  dateOfBirth               DateTime? @map("date_of_birth") @db.Date
+  gender                    Gender?
+  age                       Int?
+  healthGoal                String?  @map("health_goal") @db.VarChar(255)
+  seekingProfessionalHelp   Boolean  @default(false) @map("seeking_professional_help")
+  pawsBalance               Int      @default(0) @map("paws_balance")
+  totalPosts                Int      @default(0) @map("total_posts")
+  onboardingCompleted       Boolean  @default(false) @map("onboarding_completed")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  journals                  Journal[]
+  goals                     Goal[]
+  breathingExercises        BreathingExercise[]
+  meditationSessions        MeditationSession[]
+  challengeCompletions      UserChallengeCompletion[]
+  communityPosts            CommunityPost[]
+  comments                  Comment[]
+  postLikes                  PostLike[]
+  notifications             Notification[]
+  refreshTokens             RefreshToken[]
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+enum Gender {
+  male
+  female
+  prefer_not_to_say
+}
+
+model Journal {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  title             String   @db.VarChar(255)
+  content           String   @db.Text
+  entryType         EntryType @map("entry_type")
+  voiceRecordingUrl String?  @map("voice_recording_url")
+  transcriptionText String?  @map("transcription_text") @db.Text
+  moodTags          String[] @map("mood_tags")
+  mediaUrls         String[] @map("media_urls")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([entryType])
+  @@map("journals")
+}
+
+enum EntryType {
+  text
+  voice
+}
+
+model Goal {
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id")
+  title       String      @db.VarChar(255)
+  description String?     @db.Text
+  category    String?     @db.VarChar(50)
+  targetDate  DateTime?   @map("target_date")
+  status      GoalStatus  @default(active)
+  progress    Int?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("goals")
+}
+
+enum GoalStatus {
+  active
+  completed
+  paused
+  cancelled
+}
+
+model BreathingExercise {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  durationSeconds Int    @map("duration_seconds")
+  durationString String  @map("duration_string") @db.VarChar(10)
+  pawsEarned    Int      @map("paws_earned")
+  completedAt   DateTime @default(now()) @map("completed_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([completedAt(sort: Desc)])
+  @@map("breathing_exercises")
+}
+
+model MeditationSession {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  durationSeconds Int    @map("duration_seconds")
+  durationString String  @map("duration_string") @db.VarChar(10)
+  soundName     String   @map("sound_name") @db.VarChar(50)
+  pawsEarned    Int      @map("paws_earned")
+  completedAt   DateTime @default(now()) @map("completed_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([completedAt(sort: Desc)])
+  @@map("meditation_sessions")
+}
+
+model DailyChallenge {
+  id            String   @id @default(uuid())
+  challengeText String   @map("challenge_text") @db.Text
+  challengeDate DateTime @map("challenge_date") @db.Date
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  completions   UserChallengeCompletion[]
+
+  @@unique([challengeDate])
+  @@index([challengeDate(sort: Desc)])
+  @@map("daily_challenges")
+}
+
+model UserChallengeCompletion {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  challengeId String   @map("challenge_id")
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+  @@index([challengeId])
+  @@map("user_challenge_completions")
+}
+
+model CommunityPost {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  content     String   @db.Text
+  isAnonymous Boolean  @default(false) @map("is_anonymous")
+  tags        String[]
+  mediaUrls   String[] @map("media_urls")
+  likeCount   Int      @default(0) @map("like_count")
+  commentCount Int     @default(0) @map("comment_count")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  comments    Comment[]
+  likes       PostLike[]
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([isDeleted])
+  @@map("community_posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  commentText String @map("comment_text") @db.Text
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_likes")
+}
+
+model Notification {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  type              String   @db.VarChar(50)
+  title             String   @db.VarChar(255)
+  subtitle         String   @db.Text
+  iconName         String   @map("icon_name") @db.VarChar(50)
+  isRead           Boolean  @default(false) @map("is_read")
+  relatedEntityType String? @map("related_entity_type") @db.VarChar(50)
+  relatedEntityId  String?  @map("related_entity_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
