@@ -1,0 +1,2312 @@
+openapi: 3.0.3
+info:
+  title: Rewind Backend API
+  description: |
+    Backend API for the Rewind iOS mental health and wellness application.
+    
+    This API provides endpoints for:
+    - User authentication and management
+    - Journaling (text and voice entries)
+    - Goal tracking
+    - Care Corner (breathing exercises, meditation, challenges)
+    - Community features (posts, comments, likes)
+    - Notifications
+    - Home Pets (Penguin companion integration)
+    
+    All endpoints (except health check) require JWT authentication via Bearer token in the Authorization header.
+  version: 1.0.0
+  contact:
+    name: Rewind Backend Team
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://api.rewind.app
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User profile and onboarding management
+  - name: Journals
+    description: Journal entries (text and voice)
+  - name: Goals
+    description: Personal health and wellness goals
+  - name: Care Corner
+    description: Breathing exercises, meditation, and daily challenges
+  - name: Community
+    description: Community posts, comments, and interactions
+  - name: Notifications
+    description: User notifications
+  - name: Home Pets
+    description: Penguin companion pet management
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the server is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Server is running
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      description: Create a new user account with email or phone
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - password
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+                  example: +1234567890
+                password:
+                  type: string
+                  minLength: 6
+                  example: SecurePass123!
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user with email/phone and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+                  example: +1234567890
+                password:
+                  type: string
+                  example: SecurePass123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: Send OTP to user's email or phone for password reset
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/auth/verify-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Verify OTP
+      description: Verify OTP for password reset
+      operationId: verifyOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - otp
+              properties:
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+                otp:
+                  type: string
+                  minLength: 4
+                  maxLength: 8
+      responses:
+        '200':
+          description: OTP verified
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password
+      description: Reset password after OTP verification
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - otp
+                - newPassword
+              properties:
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+                otp:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 6
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidate refresh token
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get authenticated user's information
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+
+  /api/v1/users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Get authenticated user's profile
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Update authenticated user's profile
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                location:
+                  type: string
+                dateOfBirth:
+                  type: string
+                  format: date
+                gender:
+                  type: string
+                  enum: [male, female, prefer_not_to_say]
+                age:
+                  type: integer
+                  minimum: 14
+                  maximum: 99
+                healthGoal:
+                  type: string
+                seekingProfessionalHelp:
+                  type: boolean
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+
+  /api/v1/users/profile/avatar:
+    post:
+      tags:
+        - Users
+      summary: Upload profile avatar
+      description: Upload or update user's profile image
+      operationId: updateProfileImage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Avatar uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      profileImageUrl:
+                        type: string
+
+  /api/v1/users/onboarding:
+    post:
+      tags:
+        - Users
+      summary: Save onboarding data
+      description: Complete user onboarding
+      operationId: saveOnboarding
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - healthGoal
+                - gender
+                - age
+                - seekingProfessionalHelp
+              properties:
+                healthGoal:
+                  type: string
+                gender:
+                  type: string
+                  enum: [male, female, prefer_not_to_say]
+                age:
+                  type: integer
+                  minimum: 14
+                  maximum: 99
+                seekingProfessionalHelp:
+                  type: boolean
+      responses:
+        '200':
+          description: Onboarding completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+
+  /api/v1/users/onboarding-status:
+    get:
+      tags:
+        - Users
+      summary: Get onboarding status
+      description: Check if user has completed onboarding
+      operationId: getOnboardingStatus
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Onboarding status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      onboardingCompleted:
+                        type: boolean
+
+  /api/v1/journals:
+    get:
+      tags:
+        - Journals
+      summary: List journals
+      description: Get paginated list of user's journal entries
+      operationId: listJournals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: entryType
+          in: query
+          schema:
+            type: string
+            enum: [text, voice]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of journals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Journal'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Journals
+      summary: Create journal entry
+      description: Create a new journal entry (text or voice)
+      operationId: createJournal
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - entryType
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                entryType:
+                  type: string
+                  enum: [text, voice]
+                voiceRecordingUrl:
+                  type: string
+                  format: uri
+                transcriptionText:
+                  type: string
+                moodTags:
+                  type: array
+                  items:
+                    type: string
+                mediaUrls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+      responses:
+        '201':
+          description: Journal created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Journal'
+                  penguinResponse:
+                    $ref: '#/components/schemas/PenguinResponse'
+
+  /api/v1/journals/timeline:
+    get:
+      tags:
+        - Journals
+      summary: Get journal timeline
+      description: Get timeline view of journal entries
+      operationId: getTimeline
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: entryType
+          in: query
+          schema:
+            type: string
+            enum: [text, voice]
+      responses:
+        '200':
+          description: Timeline data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Journal'
+
+  /api/v1/journals/voice/transcribe:
+    post:
+      tags:
+        - Journals
+      summary: Transcribe voice recording
+      description: Upload and transcribe a voice recording
+      operationId: transcribeVoice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Transcription result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      transcriptionText:
+                        type: string
+
+  /api/v1/journals/{id}:
+    get:
+      tags:
+        - Journals
+      summary: Get journal by ID
+      description: Get a specific journal entry
+      operationId: getJournal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Journal entry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Journal'
+    put:
+      tags:
+        - Journals
+      summary: Update journal entry
+      description: Update an existing journal entry
+      operationId: updateJournal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                moodTags:
+                  type: array
+                  items:
+                    type: string
+                transcriptionText:
+                  type: string
+      responses:
+        '200':
+          description: Journal updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Journal'
+    delete:
+      tags:
+        - Journals
+      summary: Delete journal entry
+      description: Delete a journal entry
+      operationId: deleteJournal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Journal deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/journals/{id}/media:
+    post:
+      tags:
+        - Journals
+      summary: Upload media to journal
+      description: Upload media files (images, videos) to a journal entry
+      operationId: uploadJournalMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                media:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Media uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      mediaUrls:
+                        type: array
+                        items:
+                          type: string
+
+  /api/v1/goals:
+    get:
+      tags:
+        - Goals
+      summary: List goals
+      description: Get paginated list of user's goals
+      operationId: listGoals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, completed, paused, cancelled]
+      responses:
+        '200':
+          description: List of goals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Goal'
+    post:
+      tags:
+        - Goals
+      summary: Create goal
+      description: Create a new goal
+      operationId: createGoal
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                targetDate:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [active, completed, paused, cancelled]
+                progress:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+      responses:
+        '201':
+          description: Goal created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Goal'
+
+  /api/v1/goals/{id}:
+    get:
+      tags:
+        - Goals
+      summary: Get goal by ID
+      description: Get a specific goal
+      operationId: getGoal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Goal details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Goal'
+    put:
+      tags:
+        - Goals
+      summary: Update goal
+      description: Update an existing goal
+      operationId: updateGoal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                targetDate:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [active, completed, paused, cancelled]
+                progress:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+      responses:
+        '200':
+          description: Goal updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Goal'
+    delete:
+      tags:
+        - Goals
+      summary: Delete goal
+      description: Delete a goal
+      operationId: deleteGoal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Goal deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/goals/{id}/progress:
+    put:
+      tags:
+        - Goals
+      summary: Update goal progress
+      description: Update the progress percentage of a goal
+      operationId: updateGoalProgress
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - progress
+              properties:
+                progress:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+      responses:
+        '200':
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Goal'
+
+  /api/v1/care-corner/challenges:
+    get:
+      tags:
+        - Care Corner
+      summary: Get daily challenges
+      description: Get daily challenges for the user
+      operationId: getChallenges
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Daily challenges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DailyChallenge'
+
+  /api/v1/care-corner/challenges/{id}/complete:
+    post:
+      tags:
+        - Care Corner
+      summary: Complete challenge
+      description: Mark a daily challenge as completed
+      operationId: completeChallenge
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Challenge completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+
+  /api/v1/care-corner/breathing:
+    get:
+      tags:
+        - Care Corner
+      summary: Get breathing history
+      description: Get user's breathing exercise history
+      operationId: getBreathingHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Breathing history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BreathingExercise'
+    post:
+      tags:
+        - Care Corner
+      summary: Record breathing exercise
+      description: Record a completed breathing exercise session
+      operationId: recordBreathing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - durationSeconds
+              properties:
+                durationSeconds:
+                  type: integer
+                  minimum: 1
+      responses:
+        '201':
+          description: Breathing exercise recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BreathingExercise'
+
+  /api/v1/care-corner/meditation:
+    get:
+      tags:
+        - Care Corner
+      summary: Get meditation history
+      description: Get user's meditation session history
+      operationId: getMeditationHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Meditation history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MeditationSession'
+    post:
+      tags:
+        - Care Corner
+      summary: Record meditation session
+      description: Record a completed meditation session
+      operationId: recordMeditation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - durationSeconds
+                - soundName
+              properties:
+                durationSeconds:
+                  type: integer
+                  minimum: 1
+                soundName:
+                  type: string
+      responses:
+        '201':
+          description: Meditation session recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MeditationSession'
+
+  /api/v1/care-corner/activities:
+    get:
+      tags:
+        - Care Corner
+      summary: Get all activities
+      description: Get combined list of all care corner activities
+      operationId: getAllActivities
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: All activities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/BreathingExercise'
+                        - $ref: '#/components/schemas/MeditationSession'
+
+  /api/v1/care-corner/stats:
+    get:
+      tags:
+        - Care Corner
+      summary: Get wellness stats
+      description: Get user's wellness statistics
+      operationId: getStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Wellness stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/WellnessStats'
+
+  /api/v1/community/posts:
+    get:
+      tags:
+        - Community
+      summary: List posts
+      description: Get paginated list of community posts
+      operationId: listPosts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommunityPost'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Community
+      summary: Create post
+      description: Create a new community post
+      operationId: createPost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+                - isAnonymous
+              properties:
+                content:
+                  type: string
+                isAnonymous:
+                  type: boolean
+                tags:
+                  type: array
+                  items:
+                    type: string
+                mediaUrls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CommunityPost'
+
+  /api/v1/community/posts/{id}:
+    get:
+      tags:
+        - Community
+      summary: Get post by ID
+      description: Get a specific community post
+      operationId: getPost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Post details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CommunityPost'
+    put:
+      tags:
+        - Community
+      summary: Update post
+      description: Update an existing post
+      operationId: updatePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CommunityPost'
+    delete:
+      tags:
+        - Community
+      summary: Delete post
+      description: Delete a post
+      operationId: deletePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Post deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/community/posts/{id}/like:
+    post:
+      tags:
+        - Community
+      summary: Like/unlike post
+      description: Toggle like on a post
+      operationId: toggleLike
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Like toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      liked:
+                        type: boolean
+
+  /api/v1/community/posts/{id}/comments:
+    get:
+      tags:
+        - Community
+      summary: Get post comments
+      description: Get comments for a post
+      operationId: getPostComments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Post comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Community
+      summary: Add comment
+      description: Add a comment to a post
+      operationId: addComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - commentText
+              properties:
+                commentText:
+                  type: string
+      responses:
+        '201':
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Comment'
+
+  /api/v1/community/comments/{id}:
+    put:
+      tags:
+        - Community
+      summary: Update comment
+      description: Update an existing comment
+      operationId: updateComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - commentText
+              properties:
+                commentText:
+                  type: string
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Comment'
+    delete:
+      tags:
+        - Community
+      summary: Delete comment
+      description: Delete a comment
+      operationId: deleteComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comment deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/community/tags:
+    get:
+      tags:
+        - Community
+      summary: Get available tags
+      description: Get list of available community tags
+      operationId: getTags
+      responses:
+        '200':
+          description: Available tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: string
+
+  /api/v1/community/users/{id}/posts:
+    get:
+      tags:
+        - Community
+      summary: Get user's posts
+      description: Get all posts by a specific user
+      operationId: getUserPosts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: User's posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommunityPost'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /api/v1/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications
+      description: Get paginated list of user's notifications
+      operationId: getNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /api/v1/notifications/unread:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread count
+      description: Get count of unread notifications
+      operationId: getUnreadCount
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      unreadCount:
+                        type: integer
+
+  /api/v1/notifications/{id}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: Mark a specific notification as read
+      operationId: markAsRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Notification'
+
+  /api/v1/notifications/read-all:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all as read
+      description: Mark all notifications as read
+      operationId: markAllAsRead
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/notifications/{id}:
+    delete:
+      tags:
+        - Notifications
+      summary: Delete notification
+      description: Delete a notification
+      operationId: deleteNotification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/homepets/user-pet:
+    get:
+      tags:
+        - Home Pets
+      summary: Get user's pet
+      description: Get authenticated user's penguin pet information
+      operationId: getUserPet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pet information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Pet'
+    put:
+      tags:
+        - Home Pets
+      summary: Update pet
+      description: Update pet information and customizations
+      operationId: updateUserPet
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                level:
+                  type: integer
+                experience:
+                  type: integer
+                customizations:
+                  type: object
+      responses:
+        '200':
+          description: Pet updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Pet'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login/register endpoint
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        profileImageUrl:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        dateOfBirth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          type: string
+          enum: [male, female, prefer_not_to_say]
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        healthGoal:
+          type: string
+          nullable: true
+        seekingProfessionalHelp:
+          type: boolean
+        pawsBalance:
+          type: integer
+        totalPosts:
+          type: integer
+        onboardingCompleted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            tokens:
+              type: object
+              properties:
+                accessToken:
+                  type: string
+                refreshToken:
+                  type: string
+
+    Journal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        entryType:
+          type: string
+          enum: [text, voice]
+        voiceRecordingUrl:
+          type: string
+          nullable: true
+        transcriptionText:
+          type: string
+          nullable: true
+        moodTags:
+          type: array
+          items:
+            type: string
+        mediaUrls:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PenguinResponse:
+      type: object
+      properties:
+        emotion:
+          type: object
+          properties:
+            primary:
+              type: string
+              enum: [calm, neutral, low, anxious, overwhelmed, positive]
+            intensity:
+              type: number
+              minimum: 0
+              maximum: 1
+            confidence:
+              type: number
+        penguin_state_delta:
+          type: object
+          properties:
+            energy:
+              type: integer
+            mood:
+              type: integer
+            trust:
+              type: integer
+        behavior_policy:
+          type: string
+          enum: [SILENT_COMPANION, REFLECT, ASK_SOFT_QUESTION, CELEBRATE_SMALL_WIN, SUGGEST_GROUNDING]
+        text_response:
+          type: string
+          nullable: true
+        explainability:
+          type: object
+          properties:
+            signals:
+              type: array
+              items:
+                type: string
+            rule_triggered:
+              type: string
+
+    Goal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        targetDate:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [active, completed, paused, cancelled]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DailyChallenge:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        points:
+          type: integer
+        date:
+          type: string
+          format: date
+
+    BreathingExercise:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        durationSeconds:
+          type: integer
+        durationString:
+          type: string
+        pawsEarned:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    MeditationSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        durationSeconds:
+          type: integer
+        durationString:
+          type: string
+        soundName:
+          type: string
+        pawsEarned:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    WellnessStats:
+      type: object
+      properties:
+        totalBreathingMinutes:
+          type: integer
+        totalMeditationMinutes:
+          type: integer
+        challengesCompleted:
+          type: integer
+        totalPawsEarned:
+          type: integer
+        streakDays:
+          type: integer
+
+    CommunityPost:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        isAnonymous:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        mediaUrls:
+          type: array
+          items:
+            type: string
+        likesCount:
+          type: integer
+        commentsCount:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        commentText:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Pet:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        level:
+          type: integer
+          minimum: 1
+          maximum: 10
+        experience:
+          type: integer
+        energy:
+          type: integer
+          minimum: 0
+          maximum: 100
+        mood:
+          type: integer
+          minimum: 0
+          maximum: 100
+        trust:
+          type: integer
+          minimum: 0
+          maximum: 100
+        lastPolicy:
+          type: string
+          nullable: true
+        customizations:
+          type: object
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        perPage:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: string
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: VALIDATION_ERROR
+              message: Validation failed
+              details:
+                - email: Valid email is required
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: UNAUTHORIZED
+              message: Invalid or expired token
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: NOT_FOUND
+              message: Resource not found
+
+    TooManyRequests:
+      description: Too many requests - rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: TOO_MANY_REQUESTS
+              message: Too many requests from this IP, please try again later.
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: INTERNAL_SERVER_ERROR
+              message: Internal server error
