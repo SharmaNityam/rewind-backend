@@ -4,6 +4,8 @@ import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { FileStorageService } from './fileStorage.service';
 import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { PenguinIntelligenceService } from './penguinIntelligence.service';
+import { PenguinStateService } from './penguinState.service';
 
 export interface CreateJournalData {
   title: string;
@@ -115,6 +117,55 @@ export class JournalService {
     const saved = await journalRepo.save(journal);
     logger.info(`Journal created: ${saved.id} by user: ${userId}`);
 
+    // Integrate with Penguin Intelligence Service
+    try {
+      const penguinService = new PenguinIntelligenceService();
+      const penguinState = await PenguinStateService.getOrCreateState(userId);
+      const daysInactive = await PenguinStateService.calculateDaysInactive(userId);
+      const timeOfDay = PenguinStateService.getTimeOfDay();
+
+      const penguinResponse = await penguinService.infer({
+        type: 'journal',
+        content: data.content,
+        explicit_request: false,
+        context: {
+          time_of_day: timeOfDay,
+          days_inactive: daysInactive,
+          last_policy: null, // Could store last policy in memory
+          state: {
+            energy: penguinState.energy,
+            mood: penguinState.mood,
+            trust: penguinState.trust,
+          },
+        },
+        user_id: userId,
+      });
+
+      // Apply state delta
+      await PenguinStateService.applyDelta(userId, penguinResponse.penguin_state_delta);
+
+      // Update memory with dominant emotion
+      if (penguinResponse.emotion.primary) {
+        await PenguinStateService.updateMemory(userId, {
+          dominantEmotion: penguinResponse.emotion.primary,
+        });
+      }
+
+      logger.info(`Penguin response generated for journal: ${saved.id}`, {
+        emotion: penguinResponse.emotion.primary,
+        policy: penguinResponse.behavior_policy,
+      });
+
+      // Store penguin response in journal metadata (optional - could add field to Journal entity)
+      // For now, we'll return it separately in the controller
+    } catch (error) {
+      logger.error('Failed to get penguin response for journal', {
+        journalId: saved.id,
+        error,
+      });
+      // Don't fail journal creation if penguin service fails
+    }
+
     return saved;
   }
 
@@ -173,7 +224,14 @@ export class JournalService {
         try {
           await FileStorageService.deleteFile(mediaUrl);
         } catch (error) {
-          logger.error(`Failed to delete media file: ${mediaUrl}`, error);
+          logger.error(`Failed to delete media file: ${mediaUrl}`, {
+            mediaUrl,
+            error: error instanceof Error ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            } : error
+          });
         }
       }
     }
@@ -184,7 +242,14 @@ export class JournalService {
       } catch (error) {
         logger.error(
           `Failed to delete voice recording: ${existing.voiceRecordingUrl}`,
-          error
+          {
+            voiceRecordingUrl: existing.voiceRecordingUrl,
+            error: error instanceof Error ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            } : error
+          }
         );
       }
     }

@@ -3,6 +3,7 @@ import { body, query } from 'express-validator';
 import { CommunityController } from '../controllers/community.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validator';
+import { validateUUID } from '../middleware/uuidValidator';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get(
 );
 
 // Get post by ID (optional auth)
-router.get('/posts/:id', authenticate, CommunityController.getPost);
+router.get('/posts/:id', authenticate, validateUUID('id'), CommunityController.getPost);
 
 // Create post (requires auth)
 router.post(
@@ -38,6 +39,7 @@ router.post(
 router.put(
   '/posts/:id',
   authenticate,
+  validateUUID('id'),
   validate([
     body('content').optional().trim().notEmpty(),
     body('tags').optional().isArray(),
@@ -46,15 +48,16 @@ router.put(
 );
 
 // Delete post (requires auth)
-router.delete('/posts/:id', authenticate, CommunityController.deletePost);
+router.delete('/posts/:id', authenticate, validateUUID('id'), CommunityController.deletePost);
 
 // Like/unlike post (requires auth)
-router.post('/posts/:id/like', authenticate, CommunityController.toggleLike);
+router.post('/posts/:id/like', authenticate, validateUUID('id'), CommunityController.toggleLike);
 
 // Get post comments (optional auth)
 router.get(
   '/posts/:id/comments',
   authenticate,
+  validateUUID('id'),
   validate([
     query('page').optional().isInt({ min: 1 }),
     query('per_page').optional().isInt({ min: 1, max: 100 }),
@@ -66,6 +69,7 @@ router.get(
 router.post(
   '/posts/:id/comments',
   authenticate,
+  validateUUID('id'),
   validate([
     body('commentText').trim().notEmpty().withMessage('Comment text is required'),
   ]),
@@ -76,6 +80,7 @@ router.post(
 router.put(
   '/comments/:id',
   authenticate,
+  validateUUID('id'),
   validate([
     body('commentText').trim().notEmpty().withMessage('Comment text is required'),
   ]),
@@ -83,7 +88,7 @@ router.put(
 );
 
 // Delete comment (requires auth)
-router.delete('/comments/:id', authenticate, CommunityController.deleteComment);
+router.delete('/comments/:id', authenticate, validateUUID('id'), CommunityController.deleteComment);
 
 // Get available tags (no auth required)
 router.get('/tags', CommunityController.getTags);
@@ -92,6 +97,7 @@ router.get('/tags', CommunityController.getTags);
 router.get(
   '/users/:id/posts',
   authenticate,
+  validateUUID('id'),
   validate([
     query('page').optional().isInt({ min: 1 }),
     query('per_page').optional().isInt({ min: 1, max: 100 }),

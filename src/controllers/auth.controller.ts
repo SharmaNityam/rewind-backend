@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
+import { logger } from '../utils/logger';
 
 export class AuthController {
   // Register
@@ -30,6 +31,12 @@ export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, phone, password } = req.body;
+      
+      logger.info('Login attempt', { 
+        email: email || 'none', 
+        phone: phone || 'none',
+        hasPassword: !!password 
+      });
 
       const result = await AuthService.login({
         email,
@@ -37,12 +44,19 @@ export class AuthController {
         password,
       });
 
+      logger.info('Login successful', { email: email || phone });
+
       res.status(200).json({
         success: true,
         data: result,
         message: 'Login successful',
       });
     } catch (error) {
+      logger.error('Login failed', { 
+        email: req.body.email || 'none', 
+        phone: req.body.phone || 'none',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       next(error);
     }
   }

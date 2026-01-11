@@ -361,4 +361,59 @@ export class CommunityService {
   static async getPostsByTag(tag: string, page: number = 1, perPage: number = 20) {
     return this.listPosts({ tag, page, perPage });
   }
+
+  // Get available tags
+  static async getAvailableTags(): Promise<string[]> {
+    const postRepo = this.getPostRepository();
+    
+    // Get all unique tags from non-deleted posts
+    const posts = await postRepo.find({
+      where: { isDeleted: false },
+      select: ['tags'],
+    });
+
+    // Extract all tags and get unique values
+    const allTags = new Set<string>();
+    posts.forEach((post) => {
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach((tag) => {
+          if (tag && typeof tag === 'string') {
+            allTags.add(tag.toLowerCase().trim());
+          }
+        });
+      }
+    });
+
+    // Return sorted unique tags
+    return Array.from(allTags).sort();
+  }
+
+  // Get posts by user ID
+  static async getUserPosts(userId: string, page: number = 1, perPage: number = 20) {
+    const postRepo = this.getPostRepository();
+    const skip = (page - 1) * perPage;
+
+    const [posts, total] = await postRepo.findAndCount({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      skip,
+      take: perPage,
+      relations: ['user'],
+    });
+
+    return {
+      data: posts,
+      pagination: {
+        page,
+        perPage,
+        total,
+        totalPages: Math.ceil(total / perPage),
+      },
+    };
+  }
 }

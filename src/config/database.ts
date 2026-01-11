@@ -11,7 +11,13 @@ export const connectDatabase = async () => {
       isInitialized = true;
       logger.info('Database connected successfully');
     } catch (error) {
-      logger.error('Failed to connect to database:', error);
+      logger.error('Failed to connect to database', { 
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        } : error
+      });
       throw error;
     }
   }

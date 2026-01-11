@@ -3,6 +3,7 @@ import { query } from 'express-validator';
 import { NotificationController } from '../controllers/notification.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validator';
+import { validateUUID } from '../middleware/uuidValidator';
 
 const router = Router();
 
@@ -23,13 +24,13 @@ router.get(
 router.get('/unread', NotificationController.getUnreadCount);
 
 // Mark notification as read
-router.put('/:id/read', NotificationController.markAsRead);
+router.put('/:id/read', validateUUID('id'), NotificationController.markAsRead);
 
 // Mark all as read
 router.put('/read-all', NotificationController.markAllAsRead);
 
 // Delete notification
-router.delete('/:id', NotificationController.deleteNotification);
+router.delete('/:id', validateUUID('id'), NotificationController.deleteNotification);
 
 export default router;
 

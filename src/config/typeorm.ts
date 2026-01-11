@@ -14,6 +14,8 @@ import {
   PostLike,
   Notification,
   RefreshToken,
+  UserPenguinState,
+  UserPenguinMemory,
 } from '../entities';
 
 dotenv.config();
@@ -34,7 +36,7 @@ if (process.env.DATABASE_URL) {
     // Fallback to individual env vars if URL parsing fails
     dbConfig = {
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
+      port: parseInt(process.env.DB_PORT || '5433'),
       username: process.env.DB_USER || 'rewind_user',
       password: process.env.DB_PASSWORD || 'rewind_password',
       database: process.env.DB_NAME || 'rewind_db',
@@ -43,7 +45,7 @@ if (process.env.DATABASE_URL) {
 } else {
   dbConfig = {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
+    port: parseInt(process.env.DB_PORT || '5433'),
     username: process.env.DB_USER || 'rewind_user',
     password: process.env.DB_PASSWORD || 'rewind_password',
     database: process.env.DB_NAME || 'rewind_db',
@@ -66,6 +68,8 @@ export const AppDataSource = new DataSource({
     PostLike,
     Notification,
     RefreshToken,
+    UserPenguinState,
+    UserPenguinMemory,
   ],
   synchronize: false, // Don't auto-sync - tables already exist
   logging: process.env.NODE_ENV === 'development',

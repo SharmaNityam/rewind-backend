@@ -10,6 +10,8 @@ export { Comment } from './Comment.entity';
 export { PostLike } from './PostLike.entity';
 export { Notification } from './Notification.entity';
 export { RefreshToken } from './RefreshToken.entity';
+export { UserPenguinState } from './UserPenguinState.entity';
+export { UserPenguinMemory } from './UserPenguinMemory.entity';
 
 export { Gender, EntryType, GoalStatus } from './enums';
 
