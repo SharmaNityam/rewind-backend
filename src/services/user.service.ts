@@ -1,5 +1,6 @@
 import { AppDataSource } from '../config/typeorm';
 import { User } from '../entities';
+import { Gender } from '../entities/enums';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { Repository } from 'typeorm';
@@ -91,12 +92,7 @@ export class UserService {
     logger.info(`Profile image updated for user: ${userId}`);
 
     const { passwordHash: _, ...userWithoutPassword } = updated;
-    return {
-      id: userWithoutPassword.id,
-      name: userWithoutPassword.name,
-      email: userWithoutPassword.email,
-      profileImageUrl: userWithoutPassword.profileImageUrl,
-    };
+    return userWithoutPassword;
   }
 
   // Save onboarding data
@@ -114,7 +110,7 @@ export class UserService {
     }
 
     user.healthGoal = data.healthGoal;
-    user.gender = data.gender;
+    user.gender = data.gender as Gender;
     user.age = data.age;
     user.seekingProfessionalHelp = data.seekingProfessionalHelp;
     user.onboardingCompleted = true;
@@ -123,14 +119,7 @@ export class UserService {
     logger.info(`Onboarding completed for user: ${userId}`);
 
     const { passwordHash: _, ...userWithoutPassword } = updated;
-    return {
-      id: userWithoutPassword.id,
-      healthGoal: userWithoutPassword.healthGoal,
-      gender: userWithoutPassword.gender,
-      age: userWithoutPassword.age,
-      seekingProfessionalHelp: userWithoutPassword.seekingProfessionalHelp,
-      onboardingCompleted: userWithoutPassword.onboardingCompleted,
-    };
+    return userWithoutPassword;
   }
 
   // Get onboarding status
@@ -148,11 +137,11 @@ export class UserService {
       onboardingCompleted: user.onboardingCompleted,
       data: user.onboardingCompleted
         ? {
-            healthGoal: user.healthGoal,
-            gender: user.gender,
-            age: user.age,
-            seekingProfessionalHelp: user.seekingProfessionalHelp,
-          }
+          healthGoal: user.healthGoal,
+          gender: user.gender,
+          age: user.age,
+          seekingProfessionalHelp: user.seekingProfessionalHelp,
+        }
         : null,
     };
   }

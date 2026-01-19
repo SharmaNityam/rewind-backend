@@ -6,33 +6,20 @@ import { connectDatabase } from './config/database';
 const PORT = process.env.PORT || 3000;
 
 // Initialize database connection before starting server
+let server: any;
+
 connectDatabase()
   .then(() => {
-    const server = app.listen(PORT, '0.0.0.0', () => {
+    server = app.listen(Number(PORT), '0.0.0.0', () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`Server listening on http://0.0.0.0:${PORT}`);
     });
 
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM signal received: closing HTTP server');
-      server.close(() => {
-        logger.info('HTTP server closed');
-        process.exit(0);
-      });
-    });
-
-    process.on('SIGINT', () => {
-      logger.info('SIGINT signal received: closing HTTP server');
-      server.close(() => {
-        logger.info('HTTP server closed');
-        process.exit(0);
-      });
-    });
+    // Graceful shutdown logic moved inside or server variable hoisted
   })
   .catch((error) => {
-    logger.error('Failed to start server', { 
+    logger.error('Failed to start server', {
       error: error instanceof Error ? {
         message: error.message,
         stack: error.stack,
@@ -43,19 +30,18 @@ connectDatabase()
   });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    logger.info('HTTP server closed');
+const shutdown = () => {
+  logger.info('Signal received: closing HTTP server');
+  if (server) {
+    server.close(() => {
+      logger.info('HTTP server closed');
+      process.exit(0);
+    });
+  } else {
     process.exit(0);
-  });
-});
+  }
+};
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT signal received: closing HTTP server');
-  server.close(() => {
-    logger.info('HTTP server closed');
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 

@@ -71,7 +71,7 @@ export const AppDataSource = new DataSource({
     UserPenguinState,
     UserPenguinMemory,
   ],
-  synchronize: false, // Don't auto-sync - tables already exist
+  synchronize: true, // Auto-sync enabled for verify/dev
   logging: process.env.NODE_ENV === 'development',
   migrations: [path.join(__dirname, '../migrations/**/*{.ts,.js}')],
 });
