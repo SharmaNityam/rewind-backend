@@ -116,7 +116,14 @@ export class FileStorageService {
         await fs.unlink(fullPath);
         logger.info(`File deleted: ${fullPath}`);
       } catch (error) {
-        logger.error(`Failed to delete file: ${fullPath}`, error);
+        logger.error(`Failed to delete file: ${fullPath}`, {
+          filePath: fullPath,
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          } : error
+        });
       }
     }
   }

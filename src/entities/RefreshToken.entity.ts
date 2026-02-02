@@ -20,7 +20,7 @@ export class RefreshToken {
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({ type: 'text', unique: true })
   token: string;
 
   @Column({ name: 'expires_at', type: 'timestamp' })

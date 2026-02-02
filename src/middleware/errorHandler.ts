@@ -21,22 +21,50 @@ export class AppError extends Error {
 }
 
 export const errorHandler = (
-  err: AppError,
+  err: Error | AppError,
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  const statusCode = err.statusCode || 500;
-  const code = err.code || 'INTERNAL_SERVER_ERROR';
-  const message = err.message || 'Internal server error';
+  // Check if it's an AppError (includes validation errors)
+  if (err instanceof AppError) {
+    const statusCode = err.statusCode || 500;
+    const code = err.code || 'INTERNAL_SERVER_ERROR';
+    const message = err.message || 'Internal server error';
 
-  // Log error
-  logger.error({
+    // Log error
+    logger.error('Request error', {
+      error: {
+        code,
+        message,
+        stack: err.stack,
+        details: err.details,
+      },
+      request: {
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+      },
+    });
+
+    // Send error response
+    res.status(statusCode).json({
+      success: false,
+      error: {
+        code,
+        message,
+        ...(process.env.NODE_ENV === 'development' && { details: err.details }),
+      },
+    });
+    return;
+  }
+
+  // Handle unexpected errors
+  logger.error('Unexpected error', {
     error: {
-      code,
-      message,
+      name: err.name,
+      message: err.message,
       stack: err.stack,
-      details: err.details,
     },
     request: {
       method: req.method,
@@ -45,13 +73,15 @@ export const errorHandler = (
     },
   });
 
-  // Send error response
-  res.status(statusCode).json({
+  // Send generic error response
+  res.status(500).json({
     success: false,
     error: {
-      code,
-      message,
-      ...(process.env.NODE_ENV === 'development' && { details: err.details }),
+      code: 'INTERNAL_SERVER_ERROR',
+      message: process.env.NODE_ENV === 'production' 
+        ? 'Internal server error' 
+        : err.message,
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
     },
   });
 };

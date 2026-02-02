@@ -10,12 +10,12 @@ services:
       POSTGRES_DB: rewind_db
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/create-tables.sql:/docker-entrypoint-initdb.d/create-tables.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rewind_user"]
+      test: ["CMD-SHELL", "pg_isready -U rewind_user -d rewind_db"]
       interval: 10s
       timeout: 5s
       retries: 5

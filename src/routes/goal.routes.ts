@@ -3,6 +3,7 @@ import { body, query } from 'express-validator';
 import { GoalController } from '../controllers/goal.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validator';
+import { validateUUID } from '../middleware/uuidValidator';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get(
 );
 
 // Get goal by ID
-router.get('/:id', GoalController.getGoal);
+router.get('/:id', validateUUID('id'), GoalController.getGoal);
 
 // Create goal
 router.post(
@@ -40,6 +41,7 @@ router.post(
 // Update goal
 router.put(
   '/:id',
+  validateUUID('id'),
   validate([
     body('title').optional().trim().notEmpty(),
     body('description').optional().trim(),
@@ -54,11 +56,12 @@ router.put(
 );
 
 // Delete goal
-router.delete('/:id', GoalController.deleteGoal);
+router.delete('/:id', validateUUID('id'), GoalController.deleteGoal);
 
 // Update goal progress
 router.put(
   '/:id/progress',
+  validateUUID('id'),
   validate([
     body('progress').isInt({ min: 0, max: 100 }).withMessage('Progress must be between 0 and 100'),
   ]),

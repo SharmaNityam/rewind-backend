@@ -22,6 +22,7 @@ export interface CreateCommentData {
 }
 
 export interface PostFilters {
+  userId?: string;
   tag?: string;
   page?: number;
   perPage?: number;
@@ -47,6 +48,7 @@ export class CommunityService {
   // List posts with pagination and filtering
   static async listPosts(filters: PostFilters = {}) {
     const postRepo = this.getPostRepository();
+    const likeRepo = this.getLikeRepository(); // Get repo
     const page = filters.page || 1;
     const perPage = filters.perPage || 20;
     const skip = (page - 1) * perPage;
@@ -70,6 +72,24 @@ export class CommunityService {
       }),
       postRepo.count({ where }),
     ]);
+
+    // Populate isLikedByMe if userId is present
+    if (filters.userId && posts.length > 0) {
+      const postIds = posts.map(p => p.id);
+      const userLikes = await likeRepo.createQueryBuilder("like")
+        .where("like.userId = :userId", { userId: filters.userId })
+        .andWhere("like.postId IN (:...postIds)", { postIds })
+        .getMany();
+
+      const likedPostIds = new Set(userLikes.map(l => l.postId));
+
+      posts.forEach(post => {
+        post.isLikedByMe = likedPostIds.has(post.id);
+        post.isMine = post.userId === filters.userId;
+      });
+    }
+
+    logger.info(`Listing posts: Found ${total} posts. Tag filter: ${filters.tag || 'None'}`);
 
     return {
       data: posts,
@@ -128,7 +148,17 @@ export class CommunityService {
 
     logger.info(`Post created: ${saved.id} by user: ${userId}`);
 
-    return saved;
+    // Reload to get default values and relations
+    const fullPost = await postRepo.findOne({
+      where: { id: saved.id },
+      relations: ['user'],
+    });
+
+    if (!fullPost) {
+      throw new AppError('Post created but could not be retrieved', 500, 'INTERNAL_ERROR');
+    }
+
+    return fullPost;
   }
 
   // Update post
@@ -360,5 +390,60 @@ export class CommunityService {
   // Get posts by tag
   static async getPostsByTag(tag: string, page: number = 1, perPage: number = 20) {
     return this.listPosts({ tag, page, perPage });
+  }
+
+  // Get available tags
+  static async getAvailableTags(): Promise<string[]> {
+    const postRepo = this.getPostRepository();
+
+    // Get all unique tags from non-deleted posts
+    const posts = await postRepo.find({
+      where: { isDeleted: false },
+      select: ['tags'],
+    });
+
+    // Extract all tags and get unique values
+    const allTags = new Set<string>();
+    posts.forEach((post) => {
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach((tag) => {
+          if (tag && typeof tag === 'string') {
+            allTags.add(tag.toLowerCase().trim());
+          }
+        });
+      }
+    });
+
+    // Return sorted unique tags
+    return Array.from(allTags).sort();
+  }
+
+  // Get posts by user ID
+  static async getUserPosts(userId: string, page: number = 1, perPage: number = 20) {
+    const postRepo = this.getPostRepository();
+    const skip = (page - 1) * perPage;
+
+    const [posts, total] = await postRepo.findAndCount({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      skip,
+      take: perPage,
+      relations: ['user'],
+    });
+
+    return {
+      data: posts,
+      pagination: {
+        page,
+        perPage,
+        total,
+        totalPages: Math.ceil(total / perPage),
+      },
+    };
   }
 }

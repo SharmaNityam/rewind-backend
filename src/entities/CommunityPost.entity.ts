@@ -19,46 +19,51 @@ import { PostLike } from './PostLike.entity';
 @Index(['isDeleted'])
 export class CommunityPost {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
-  userId: string | null;
+  userId!: string | null;
 
   @Column({ type: 'text' })
-  content: string;
+  content!: string;
 
   @Column({ name: 'is_anonymous', type: 'boolean', default: false })
-  isAnonymous: boolean;
+  isAnonymous!: boolean;
 
   @Column({ type: 'text', array: true, default: [] })
-  tags: string[];
+  tags!: string[];
 
   @Column({ name: 'media_urls', type: 'text', array: true, default: [] })
-  mediaUrls: string[];
+  mediaUrls!: string[];
 
   @Column({ name: 'like_count', type: 'int', default: 0 })
-  likeCount: number;
+  likeCount!: number;
 
   @Column({ name: 'comment_count', type: 'int', default: 0 })
-  commentCount: number;
+  commentCount!: number;
 
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
-  isDeleted: boolean;
+  isDeleted!: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ManyToOne(() => User, (user) => user.communityPosts, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'user_id' })
-  user: User | null;
+  user!: User | null;
 
   @OneToMany(() => Comment, (comment) => comment.post)
-  comments: Comment[];
+  comments!: Comment[];
 
   @OneToMany(() => PostLike, (like) => like.post)
-  likes: PostLike[];
+  likes!: PostLike[];
+
+  // Virtual property
+  isLikedByMe?: boolean;
+
+  isMine?: boolean;
 }
 

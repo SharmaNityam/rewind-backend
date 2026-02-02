@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { CommunityService } from '../services/community.service';
-import { AuthRequest, optionalAuthenticate } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
 
 export class CommunityController {
   // List posts
@@ -8,7 +8,10 @@ export class CommunityController {
     try {
       const { tag, page, per_page } = req.query;
 
+      const userId = req.user?.id || undefined; // Handle potential null
+
       const result = await CommunityService.listPosts({
+        userId,
         tag: tag as string | undefined,
         page: page ? parseInt(page as string, 10) : undefined,
         perPage: per_page ? parseInt(per_page as string, 10) : undefined,
@@ -42,7 +45,10 @@ export class CommunityController {
   // Create post
   static async createPost(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.id || null;
+      const userId = req.user?.id;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
       const { content, isAnonymous, tags, mediaUrls } = req.body;
 
       const post = await CommunityService.createPost(userId, {

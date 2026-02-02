@@ -5,6 +5,8 @@ import { logger } from '../utils/logger';
 import { PawsService } from './paws.service';
 import { NotificationService } from './notification.service';
 import { Repository } from 'typeorm';
+import { PenguinIntelligenceService } from './penguinIntelligence.service';
+import { PenguinStateService } from './penguinState.service';
 
 export interface BreathingExerciseData {
   durationSeconds: number;
@@ -127,6 +129,41 @@ export class CareCornerService {
 
     logger.info(`Breathing exercise completed: ${saved.id} by user: ${userId}`);
 
+    // Integrate with Penguin Intelligence Service
+    try {
+      const penguinService = new PenguinIntelligenceService();
+      const penguinState = await PenguinStateService.getOrCreateState(userId);
+      const daysInactive = await PenguinStateService.calculateDaysInactive(userId);
+      const timeOfDay = PenguinStateService.getTimeOfDay();
+
+      const penguinResponse = await penguinService.infer({
+        type: 'breathing',
+        content: null,
+        explicit_request: false,
+        context: {
+          time_of_day: timeOfDay,
+          days_inactive: daysInactive,
+          last_policy: null,
+          state: {
+            energy: penguinState.energy,
+            mood: penguinState.mood,
+            trust: penguinState.trust,
+          },
+        },
+        user_id: userId,
+      });
+
+      // Apply state delta
+      await PenguinStateService.applyDelta(userId, penguinResponse.penguin_state_delta);
+
+      logger.info(`Penguin response generated for breathing exercise: ${saved.id}`);
+    } catch (error) {
+      logger.error('Failed to get penguin response for breathing exercise', {
+        exerciseId: saved.id,
+        error,
+      });
+    }
+
     return saved;
   }
 
@@ -157,7 +194,128 @@ export class CareCornerService {
 
     logger.info(`Meditation session completed: ${saved.id} by user: ${userId}`);
 
+    // Integrate with Penguin Intelligence Service (similar to breathing)
+    try {
+      const penguinService = new PenguinIntelligenceService();
+      const penguinState = await PenguinStateService.getOrCreateState(userId);
+      const daysInactive = await PenguinStateService.calculateDaysInactive(userId);
+      const timeOfDay = PenguinStateService.getTimeOfDay();
+
+      const penguinResponse = await penguinService.infer({
+        type: 'breathing', // Meditation is similar to breathing for penguin
+        content: null,
+        explicit_request: false,
+        context: {
+          time_of_day: timeOfDay,
+          days_inactive: daysInactive,
+          last_policy: null,
+          state: {
+            energy: penguinState.energy,
+            mood: penguinState.mood,
+            trust: penguinState.trust,
+          },
+        },
+        user_id: userId,
+      });
+
+      // Apply state delta
+      await PenguinStateService.applyDelta(userId, penguinResponse.penguin_state_delta);
+
+      logger.info(`Penguin response generated for meditation session: ${saved.id}`);
+    } catch (error) {
+      logger.error('Failed to get penguin response for meditation session', {
+        sessionId: saved.id,
+        error,
+      });
+    }
+
     return saved;
+  }
+
+  // Record breathing exercise (alias for startBreathingExercise)
+  static async recordBreathing(userId: string, data: BreathingExerciseData) {
+    return this.startBreathingExercise(userId, data);
+  }
+
+  // Record meditation session (alias for startMeditationSession)
+  static async recordMeditation(userId: string, data: MeditationSessionData) {
+    return this.startMeditationSession(userId, data);
+  }
+
+  // Get breathing history
+  static async getBreathingHistory(userId: string, limit?: number) {
+    const breathingRepo = this.getBreathingRepository();
+    const exercises = await breathingRepo.find({
+      where: { userId },
+      take: limit,
+      order: { completedAt: 'DESC' },
+    });
+    return exercises;
+  }
+
+  // Get meditation history
+  static async getMeditationHistory(userId: string, limit?: number) {
+    const meditationRepo = this.getMeditationRepository();
+    const sessions = await meditationRepo.find({
+      where: { userId },
+      take: limit,
+      order: { completedAt: 'DESC' },
+    });
+    return sessions;
+  }
+
+  // Get all activities
+  static async getAllActivities(userId: string, limit?: number) {
+    const breathingRepo = this.getBreathingRepository();
+    const meditationRepo = this.getMeditationRepository();
+    const completionRepo = this.getCompletionRepository();
+
+    const [breathingExercises, meditationSessions, challengeCompletions] = await Promise.all([
+      breathingRepo.find({
+        where: { userId },
+        take: limit,
+        order: { completedAt: 'DESC' },
+      }),
+      meditationRepo.find({
+        where: { userId },
+        take: limit,
+        order: { completedAt: 'DESC' },
+      }),
+      completionRepo.find({
+        where: { userId },
+        take: limit,
+        order: { completedAt: 'DESC' },
+        relations: ['challenge'],
+      }),
+    ]);
+
+    return {
+      breathingExercises,
+      meditationSessions,
+      challengeCompletions,
+    };
+  }
+
+  // Get wellness stats
+  static async getWellnessStats(userId: string) {
+    const breathingRepo = this.getBreathingRepository();
+    const meditationRepo = this.getMeditationRepository();
+    const completionRepo = this.getCompletionRepository();
+    const userRepo = this.getUserRepository();
+
+    const [breathingCount, meditationCount, completionCount, user] = await Promise.all([
+      breathingRepo.count({ where: { userId } }),
+      meditationRepo.count({ where: { userId } }),
+      completionRepo.count({ where: { userId } }),
+      userRepo.findOne({ where: { id: userId } }),
+    ]);
+
+    return {
+      totalBreathingExercises: breathingCount,
+      totalMeditationSessions: meditationCount,
+      totalChallengesCompleted: completionCount,
+      pawsBalance: user?.pawsBalance || 0,
+    };
   }
 
   // Get activity history

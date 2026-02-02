@@ -1,9 +1,8 @@
-// HomePets service - no database operations needed (placeholder feature)
+// HomePets service - integrated with Penguin Intelligence Service
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
-
-// Note: HomePets is a placeholder feature for future implementation
-// For now, we'll store basic pet information in a JSON field on the user
+import { PenguinStateService } from './penguinState.service';
+import { PenguinIntelligenceService } from './penguinIntelligence.service';
 
 export interface PetData {
   name?: string;
@@ -14,16 +13,36 @@ export interface PetData {
 }
 
 export class HomePetsService {
-  // Get user's pet information
+  // Get user's pet information (now returns real penguin state)
   static async getUserPet(userId: string) {
-    // For now, return a placeholder pet
-    // In the future, this would be stored in a separate pets table
+    const penguinState = await PenguinStateService.getOrCreateState(userId);
+    const penguinMemory = await PenguinStateService.getOrCreateMemory(userId);
+    
+    // Get memory from Penguin service (optional)
+    const penguinService = new PenguinIntelligenceService();
+    const memory = await penguinService.getMemory(userId);
+
+    // Calculate level based on total state (energy + mood + trust)
+    const totalState = penguinState.energy + penguinState.mood + penguinState.trust;
+    const level = Math.floor(totalState / 30); // Level 1-10 based on state (0-300)
+    const experience = totalState; // Experience = total state value
+
     return {
-      id: 'placeholder',
-      name: 'My Pet',
-      type: 'default',
-      level: 1,
-      experience: 0,
+      id: userId,
+      name: 'Penguin Companion',
+      type: 'penguin',
+      level: Math.max(1, level),
+      experience,
+      state: {
+        energy: penguinState.energy,
+        mood: penguinState.mood,
+        trust: penguinState.trust,
+      },
+      memory: memory || {
+        weekAvgMood: penguinMemory.weekAvgMood,
+        dominantEmotion: penguinMemory.dominantEmotion,
+        talkPreference: penguinMemory.talkPreference,
+      },
       customizations: {},
     };
   }

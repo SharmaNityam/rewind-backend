@@ -1,6 +1,8 @@
 import { Response, NextFunction } from 'express';
 import { JournalService } from '../services/journal.service';
 import { AuthRequest } from '../middleware/auth';
+import { PenguinStateService } from '../services/penguinState.service';
+import { PenguinIntelligenceService } from '../services/penguinIntelligence.service';
 
 export class JournalController {
   // List journals
@@ -85,9 +87,25 @@ export class JournalController {
         mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : [],
       });
 
+      // Get penguin state for response
+      const penguinState = await PenguinStateService.getOrCreateState(userId);
+      const penguinMemory = await PenguinStateService.getOrCreateMemory(userId);
+
       res.status(201).json({
         success: true,
         data: journal,
+        penguin: {
+          state: {
+            energy: penguinState.energy,
+            mood: penguinState.mood,
+            trust: penguinState.trust,
+          },
+          memory: {
+            dominantEmotion: penguinMemory.dominantEmotion,
+            weekAvgMood: penguinMemory.weekAvgMood,
+            talkPreference: penguinMemory.talkPreference,
+          },
+        },
         message: 'Journal created successfully',
       });
     } catch (error) {

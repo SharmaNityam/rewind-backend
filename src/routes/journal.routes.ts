@@ -4,6 +4,7 @@ import { JournalController } from '../controllers/journal.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validator';
 import { uploadSingle } from '../middleware/upload';
+import { validateUUID } from '../middleware/uuidValidator';
 
 const router = Router();
 
@@ -23,8 +24,26 @@ router.get(
   JournalController.listJournals
 );
 
+// Get timeline (must be before /:id route)
+router.get(
+  '/timeline',
+  validate([
+    query('startDate').optional().isISO8601(),
+    query('endDate').optional().isISO8601(),
+    query('entryType').optional().isIn(['text', 'voice']),
+  ]),
+  JournalController.getTimeline
+);
+
+// Transcribe voice (must be before /:id route)
+router.post(
+  '/voice/transcribe',
+  uploadSingle('audio'),
+  JournalController.transcribeVoice
+);
+
 // Get journal by ID
-router.get('/:id', JournalController.getJournal);
+router.get('/:id', validateUUID('id'), JournalController.getJournal);
 
 // Create journal
 router.post(
@@ -46,6 +65,7 @@ router.post(
 // Update journal
 router.put(
   '/:id',
+  validateUUID('id'),
   validate([
     body('title').optional().trim().notEmpty(),
     body('content').optional().trim().notEmpty(),
@@ -56,31 +76,14 @@ router.put(
 );
 
 // Delete journal
-router.delete('/:id', JournalController.deleteJournal);
+router.delete('/:id', validateUUID('id'), JournalController.deleteJournal);
 
 // Upload media to journal
 router.post(
   '/:id/media',
+  validateUUID('id'),
   uploadSingle('media'),
   JournalController.uploadMedia
-);
-
-// Get timeline
-router.get(
-  '/timeline',
-  validate([
-    query('startDate').optional().isISO8601(),
-    query('endDate').optional().isISO8601(),
-    query('entryType').optional().isIn(['text', 'voice']),
-  ]),
-  JournalController.getTimeline
-);
-
-// Transcribe voice
-router.post(
-  '/voice/transcribe',
-  uploadSingle('audio'),
-  JournalController.transcribeVoice
 );
 
 export default router;
